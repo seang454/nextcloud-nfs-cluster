@@ -1,0 +1,25 @@
+{{- if and .Values.traefik.enabled .Values.traefik.tlsOption.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: TLSOption
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-tls-option
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  minVersion: {{ .Values.traefik.tlsOption.minVersion | default "VersionTLS12" }}
+  cipherSuites:
+    {{- toYaml .Values.traefik.tlsOption.cipherSuites | nindent 4 }}
+  sniStrict: {{ .Values.traefik.tlsOption.sniStrict | default false }}
+{{- end }}
+---
+{{- if and .Values.traefik.enabled .Values.traefik.tlsStore.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  defaultCertificate:
+    secretName: {{ .Values.traefik.tls.secretName | default "nextcloud-tls" }}
+{{- end }}

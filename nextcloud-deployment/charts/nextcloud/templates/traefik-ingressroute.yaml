@@ -1,0 +1,125 @@
+{{- if and .Values.traefik.enabled .Values.traefik.ingressRoute.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "nextcloud.fullname" . }}
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+  {{- with .Values.traefik.ingressRoute.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  entryPoints:
+    {{- toYaml .Values.traefik.ingressRoute.entryPoints | nindent 4 }}
+  routes:
+    {{- if and .Values.traefik.middlewares.forwardAuth.enabled .Values.traefik.middlewares.forwardAuth.excludeSyncPaths }}
+    # Route 1: Web UI (Protected by oauth2-forward-auth)
+    - match: Host(`{{ .Values.global.domain }}`) && !PathPrefix(`/remote.php`, `/status.php`, `/.well-known`, `/ocs`)
+      kind: Rule
+      services:
+        - name: {{ include "nextcloud.fullname" . }}
+          port: {{ .Values.traefik.ingressRoute.servicePort | default 80 }}
+          {{- if .Values.traefik.serversTransport.enabled }}
+          serversTransport: {{ .Values.traefik.serversTransport.name | default "backend-internal-mtls" }}
+          {{- end }}
+      middlewares:
+        {{- if .Values.traefik.middlewares.rateLimit.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-api-rate-limit
+        {{- end }}
+        - name: {{ include "nextcloud.fullname" . }}-oauth2-forward-auth
+        {{- if .Values.traefik.middlewares.headers.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-headers
+        {{- end }}
+        {{- if .Values.traefik.middlewares.redirectRegex.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-redirectregex
+        {{- end }}
+        {{- if .Values.traefik.middlewares.buffering.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-buffering
+        {{- end }}
+        {{- if .Values.traefik.middlewares.compress.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-compress
+        {{- end }}
+        {{- if .Values.traefik.middlewares.ipAllowList.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-ip-allowlist
+        {{- end }}
+        {{- with .Values.traefik.ingressRoute.customMiddlewares }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+    # Route 2: Sync Apps & WebDAV APIs (Bypasses forwardAuth for desktop/mobile app compatibility)
+    - match: Host(`{{ .Values.global.domain }}`) && PathPrefix(`/remote.php`, `/status.php`, `/.well-known`, `/ocs`)
+      kind: Rule
+      services:
+        - name: {{ include "nextcloud.fullname" . }}
+          port: {{ .Values.traefik.ingressRoute.servicePort | default 80 }}
+          {{- if .Values.traefik.serversTransport.enabled }}
+          serversTransport: {{ .Values.traefik.serversTransport.name | default "backend-internal-mtls" }}
+          {{- end }}
+      middlewares:
+        {{- if .Values.traefik.middlewares.rateLimit.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-api-rate-limit
+        {{- end }}
+        {{- if .Values.traefik.middlewares.headers.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-headers
+        {{- end }}
+        {{- if .Values.traefik.middlewares.redirectRegex.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-redirectregex
+        {{- end }}
+        {{- if .Values.traefik.middlewares.buffering.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-buffering
+        {{- end }}
+        {{- if .Values.traefik.middlewares.compress.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-compress
+        {{- end }}
+        {{- if .Values.traefik.middlewares.ipAllowList.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-ip-allowlist
+        {{- end }}
+        {{- with .Values.traefik.ingressRoute.customMiddlewares }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- else }}
+    # Standard single route matching all traffic
+    - match: Host(`{{ .Values.global.domain }}`)
+      kind: Rule
+      services:
+        - name: {{ include "nextcloud.fullname" . }}
+          port: {{ .Values.traefik.ingressRoute.servicePort | default 80 }}
+          {{- if .Values.traefik.serversTransport.enabled }}
+          serversTransport: {{ .Values.traefik.serversTransport.name | default "backend-internal-mtls" }}
+          {{- end }}
+      middlewares:
+        {{- if .Values.traefik.middlewares.rateLimit.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-api-rate-limit
+        {{- end }}
+        {{- if .Values.traefik.middlewares.forwardAuth.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-oauth2-forward-auth
+        {{- end }}
+        {{- if .Values.traefik.middlewares.headers.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-headers
+        {{- end }}
+        {{- if .Values.traefik.middlewares.redirectRegex.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-redirectregex
+        {{- end }}
+        {{- if .Values.traefik.middlewares.buffering.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-buffering
+        {{- end }}
+        {{- if .Values.traefik.middlewares.compress.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-compress
+        {{- end }}
+        {{- if .Values.traefik.middlewares.ipAllowList.enabled }}
+        - name: {{ include "nextcloud.fullname" . }}-ip-allowlist
+        {{- end }}
+        {{- with .Values.traefik.ingressRoute.customMiddlewares }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- end }}
+  {{- if .Values.traefik.tls.enabled }}
+  tls:
+    secretName: {{ .Values.traefik.tls.secretName | default "nextcloud-tls" }}
+    {{- if .Values.traefik.tlsOption.enabled }}
+    options:
+      name: {{ include "nextcloud.fullname" . }}-tls-option
+    {{- end }}
+  {{- end }}
+{{- end }}

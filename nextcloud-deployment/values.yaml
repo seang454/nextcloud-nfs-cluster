@@ -1,0 +1,234 @@
+# Default values for cloud-storage-platform.
+# Configured for Traefik CRDs (IngressRoute, Middlewares, TLSOption, TLSStore, ServersTransport)
+# and NFS Storage Provisioner (nfs-client / nfs-pvc).
+
+global:
+  storageClass: "nfs-client"
+  domain: "nextcloud.seang.shop"
+  workerIp: "35.201.128.109"
+
+# ---------------------------------------------------------------------------
+# MariaDB
+# ---------------------------------------------------------------------------
+mariadb:
+  enabled: true
+  image: mariadb
+  imageTag: "11"
+  replicaCount: 1
+
+  auth:
+    database: nextcloud
+    username: nextcloud
+    existingSecret: ""
+    rootPassword: "CHANGE_ME_ROOT"
+    password: "CHANGE_ME_APP"
+
+  persistence:
+    enabled: true
+    storageClass: "nfs-client"
+    size: 5Gi
+    accessMode: ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ---------------------------------------------------------------------------
+# Redis
+# ---------------------------------------------------------------------------
+redis:
+  enabled: true
+  image: redis
+  imageTag: "7-alpine"
+
+  existingSecret: ""
+  password: "CHANGE_ME_REDIS"
+
+  persistence:
+    enabled: true
+    storageClass: "nfs-client"
+    size: 2Gi
+    accessMode: ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# ---------------------------------------------------------------------------
+# MinIO
+# ---------------------------------------------------------------------------
+minio:
+  enabled: true
+  image: minio/minio
+  imageTag: "latest"
+
+  mode: standalone
+
+  rootUser: minioadmin
+  existingSecret: ""
+  rootPassword: "CHANGE_ME_MINIO"
+
+  bucketName: nextcloud-data
+
+  persistence:
+    enabled: true
+    storageClass: "nfs-client"
+    size: 20Gi
+    accessMode: ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  traefik:
+    enabled: true
+    ingressRoute:
+      enabled: true
+    tls:
+      enabled: true
+      secretName: minio-console-tls
+
+  ingress:
+    console:
+      host: "minio.seang.shop"
+
+# ---------------------------------------------------------------------------
+# Nextcloud
+# ---------------------------------------------------------------------------
+nextcloud:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: nextcloud
+    tag: "29-fpm"
+    pullPolicy: IfNotPresent
+
+  nginx:
+    image:
+      repository: nginx
+      tag: "1.27-alpine"
+
+  admin:
+    username: admin
+    existingSecret: ""
+    password: "CHANGE_ME_ADMIN"
+
+  persistence:
+    enabled: true
+    existingClaim: "nfs-pvc"   # Set to "nfs-pvc" or leave empty to provision dynamically
+    storageClass: "nfs-client"
+    accessMode: ReadWriteMany
+    size: 10Gi
+
+  resources:
+    php:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+
+    nginx:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+  autoscaling:
+    enabled: false
+
+  # Traefik Integration (IngressRoute, Middlewares, TLSOption, TLSStore, ServersTransport)
+  traefik:
+    enabled: true
+
+    ingressRoute:
+      enabled: true
+      entryPoints:
+        - web
+        - websecure
+      servicePort: 80
+      annotations: {}
+      customMiddlewares: []
+
+    tls:
+      enabled: true
+      secretName: nextcloud-tls
+
+    tlsOption:
+      enabled: true
+      minVersion: "VersionTLS12"
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_AES_128_GCM_SHA256
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+      sniStrict: false
+
+    tlsStore:
+      enabled: true
+
+    serversTransport:
+      enabled: true
+      name: "backend-internal-mtls"
+      insecureSkipVerify: true
+
+    middlewares:
+      rateLimit:
+        enabled: true
+        average: 100
+        burst: 50
+
+      forwardAuth:
+        enabled: true    # Traefik Perimeter Protection enabled
+        address: "http://oauth2-proxy.default.svc.cluster.local:4180"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "X-Auth-User"
+          - "X-Auth-Email"
+          - "Authorization"
+        excludeSyncPaths: true   # Excludes WebDAV & sync endpoints (/remote.php, /status.php, /.well-known, /ocs) so desktop/mobile sync apps work
+
+      headers:
+        enabled: true
+        stsSeconds: 31536000
+
+      redirectRegex:
+        enabled: true
+
+      buffering:
+        enabled: true
+        maxRequestBodyBytes: 10737418240  # 10GB max upload body limit
+        memRequestBodyBytes: 20971520    # 20MB in-memory buffer
+
+      compress:
+        enabled: true
+
+      ipAllowList:
+        enabled: false   # Set true to restrict access by IP
+        sourceRange:
+          - "35.201.128.109/32"
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  networkPolicy:
+    enabled: true

@@ -1,0 +1,130 @@
+# helm install csp . -f environments/production-values.yaml -n nextcloud-prod --create-namespace
+#
+# PRODUCTION PREREQUISITE: create the real Secrets referenced below *before*
+# installing -- ideally via External Secrets Operator pulling from your Vault
+# instance (the same pattern already used elsewhere on your platform), e.g.:
+#
+#   kind: ExternalSecret
+#   metadata: { name: csp-mariadb-auth }
+#   spec:
+#     secretStoreRef: { name: vault-backend, kind: ClusterSecretStore }
+#     target: { name: csp-mariadb-auth }
+#     data:
+#       - secretKey: mariadb-root-password
+#         remoteRef: { key: secret/data/nextcloud/mariadb, property: root-password }
+#       - secretKey: mariadb-password
+#         remoteRef: { key: secret/data/nextcloud/mariadb, property: password }
+#
+# Repeat the pattern for csp-redis-auth, csp-minio-auth, and the nextcloud
+# admin secret, then reference the resulting Secret names below via each
+# `existingSecret` field so no plaintext credentials ever live in this file.
+
+global:
+  storageClass: "nfs-client"
+  domain: "nextcloud.seang.shop"
+  workerIp: "35.201.128.109"
+
+mariadb:
+  replicaCount: 1                 # single-primary MariaDB; consider Galera/Percona XtraDB
+                                   # cluster or a managed cloud SQL service for true HA
+  auth:
+    existingSecret: "csp-mariadb-auth"
+  persistence:
+    storageClass: "nfs-client"
+    size: 50Gi
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: "2",  memory: 2Gi }
+
+redis:
+  existingSecret: "csp-redis-auth"
+  persistence:
+    storageClass: "nfs-client"
+    size: 10Gi
+  resources:
+    requests: { cpu: 200m, memory: 256Mi }
+    limits:   { cpu: "1",  memory: 1Gi }
+
+minio:
+  existingSecret: "csp-minio-auth"
+  persistence:
+    storageClass: "nfs-client"
+    size: 500Gi
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: "2",  memory: 4Gi }
+  traefik:
+    ingressRoute:
+      enabled: false
+
+nextcloud:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 65
+  admin:
+    existingSecret: "csp-nextcloud-admin"
+  database:
+    existingSecret: "csp-mariadb-auth"
+  objectStore:
+    existingSecret: "csp-minio-auth"
+  persistence:
+    existingClaim: "nfs-pvc"
+    storageClass: "nfs-client"
+    accessMode: ReadWriteMany
+    size: 20Gi
+  resources:
+    php:
+      requests: { cpu: "1",   memory: 2Gi }
+      limits:   { cpu: "3",   memory: 4Gi }
+    nginx:
+      requests: { cpu: 200m,  memory: 256Mi }
+      limits:   { cpu: "1",   memory: 512Mi }
+  traefik:
+    enabled: true
+    ingressRoute:
+      enabled: true
+      entryPoints:
+        - web
+        - websecure
+    tls:
+      enabled: true
+      secretName: nextcloud-tls
+    tlsOption:
+      enabled: true
+    tlsStore:
+      enabled: true
+    serversTransport:
+      enabled: true
+      name: "backend-internal-mtls"
+      insecureSkipVerify: true
+    middlewares:
+      rateLimit:
+        enabled: true
+        average: 100
+        burst: 50
+      forwardAuth:
+        enabled: true
+        address: "http://oauth2-proxy.default.svc.cluster.local:4180"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "X-Auth-User"
+          - "X-Auth-Email"
+          - "Authorization"
+        excludeSyncPaths: true
+      headers:
+        enabled: true
+      redirectRegex:
+        enabled: true
+      buffering:
+        enabled: true
+        maxRequestBodyBytes: 17179869184  # 16GB
+      compress:
+        enabled: true
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  networkPolicy:
+    enabled: true

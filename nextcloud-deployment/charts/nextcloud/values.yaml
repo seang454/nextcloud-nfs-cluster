@@ -1,0 +1,147 @@
+# Defaults for the nextcloud subchart.
+# Optimized for:
+# - Traefik CRDs (IngressRoute, Middlewares, TLSOption, TLSStore, ServersTransport)
+# - NFS Storage Provisioner / PVC (nfs-pvc / nfs-client)
+
+replicaCount: 1
+
+image:
+  repository: nextcloud
+  tag: "29-fpm"
+  pullPolicy: IfNotPresent
+
+nginx:
+  image:
+    repository: nginx
+    tag: "1.27-alpine"
+
+admin:
+  username: admin
+  existingSecret: ""
+  password: "CHANGE_ME_ADMIN"
+
+database:
+  name: nextcloud
+  username: nextcloud
+  existingSecret: ""
+
+persistence:
+  enabled: true
+  existingClaim: "nfs-pvc"   # Existing PVC name (e.g. nfs-pvc) or empty string to provision dynamically
+  storageClass: "nfs-client"
+  accessMode: ReadWriteMany
+  size: 10Gi
+
+objectStore:
+  bucket: nextcloud-data
+  port: 9000
+  ssl: false
+  region: us-east-1
+  usePathStyle: true
+  existingSecret: ""
+
+resources:
+  php:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+  nginx:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+# Traefik Integration (IngressRoute, Middlewares, TLSOption, TLSStore, ServersTransport)
+traefik:
+  enabled: true
+
+  ingressRoute:
+    enabled: true
+    entryPoints:
+      - web
+      - websecure
+    servicePort: 80
+    annotations: {}
+    customMiddlewares: []
+
+  tls:
+    enabled: true
+    secretName: nextcloud-tls
+
+  tlsOption:
+    enabled: true
+    minVersion: "VersionTLS12"
+    cipherSuites:
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+      - TLS_AES_128_GCM_SHA256
+      - TLS_AES_256_GCM_SHA384
+      - TLS_CHACHA20_POLY1305_SHA256
+    sniStrict: false
+
+  tlsStore:
+    enabled: true
+
+  serversTransport:
+    enabled: true
+    name: "backend-internal-mtls"
+    insecureSkipVerify: true
+
+  middlewares:
+    rateLimit:
+      enabled: true
+      average: 100
+      burst: 50
+
+    forwardAuth:
+      enabled: true    # Traefik Perimeter Protection enabled
+      address: "http://oauth2-proxy.default.svc.cluster.local:4180"
+      trustForwardHeader: true
+      authResponseHeaders:
+        - "X-Auth-User"
+        - "X-Auth-Email"
+        - "Authorization"
+      excludeSyncPaths: true   # Excludes WebDAV & sync endpoints (/remote.php, /status.php, /.well-known, /ocs) so desktop/mobile sync apps work
+
+    headers:
+      enabled: true
+      stsSeconds: 31536000
+
+    redirectRegex:
+      enabled: true
+
+    buffering:
+      enabled: true
+      maxRequestBodyBytes: 10737418240  # 10GB upload limit
+      memRequestBodyBytes: 20971520    # 20MB in-memory buffer
+
+    compress:
+      enabled: true
+
+    ipAllowList:
+      enabled: false   # Set true to restrict access by IP
+      sourceRange:
+        - "35.201.128.109/32"
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: true
+
+serviceAccount:
+  create: true
+  name: ""
+
+phpMemoryLimit: "1024M"
+phpUploadLimit: "10G"

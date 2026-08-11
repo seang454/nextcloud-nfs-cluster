@@ -1,0 +1,44 @@
+# helm install csp-staging . -f environments/staging-values.yaml -n nextcloud-staging --create-namespace
+
+global:
+  storageClass: "nfs-client"
+  domain: "nextcloud-test.seang.shop"
+  workerIp: "35.201.128.109"
+
+mariadb:
+  persistence:
+    storageClass: "nfs-client"
+    size: 1Gi
+
+redis:
+  persistence:
+    storageClass: "nfs-client"
+    size: 1Gi
+
+minio:
+  persistence:
+    storageClass: "nfs-client"
+    size: 1Gi
+  traefik:
+    ingressRoute:
+      enabled: true
+  ingress:
+    console:
+      host: "minio-test.seang.shop"
+
+nextcloud:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  persistence:
+    existingClaim: "nfs-pvc"
+    storageClass: "nfs-client"
+    accessMode: ReadWriteMany
+    size: 10Gi
+  traefik:
+    enabled: true
+    ingressRoute:
+      enabled: true
+    tls:
+      enabled: true
+      secretName: nextcloud-tls

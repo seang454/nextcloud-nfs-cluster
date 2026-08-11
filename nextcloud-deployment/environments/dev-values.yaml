@@ -1,0 +1,47 @@
+# helm install csp-dev . -f environments/dev-values.yaml -n nextcloud-dev --create-namespace
+
+global:
+  storageClass: "nfs-client"
+  domain: "nextcloud.dev.local"
+  workerIp: "35.201.128.109"
+
+mariadb:
+  persistence:
+    storageClass: "nfs-client"
+    size: 5Gi
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+redis:
+  persistence:
+    storageClass: "nfs-client"
+    size: 1Gi
+
+minio:
+  persistence:
+    storageClass: "nfs-client"
+    size: 10Gi
+  traefik:
+    ingressRoute:
+      enabled: false
+
+nextcloud:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  persistence:
+    existingClaim: "nfs-pvc"
+    storageClass: "nfs-client"
+    accessMode: ReadWriteMany
+    size: 5Gi
+  traefik:
+    enabled: false
+  podDisruptionBudget:
+    enabled: false
+  networkPolicy:
+    enabled: false
+  resources:
+    php:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }

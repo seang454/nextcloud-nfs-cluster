@@ -1,0 +1,101 @@
+{{- if .Values.traefik.enabled }}
+{{- if .Values.traefik.middlewares.rateLimit.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-api-rate-limit
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  rateLimit:
+    average: {{ .Values.traefik.middlewares.rateLimit.average | default 100 }}
+    burst: {{ .Values.traefik.middlewares.rateLimit.burst | default 50 }}
+---
+{{- end }}
+{{- if .Values.traefik.middlewares.forwardAuth.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-oauth2-forward-auth
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  forwardAuth:
+    address: {{ .Values.traefik.middlewares.forwardAuth.address | quote }}
+    trustForwardHeader: {{ .Values.traefik.middlewares.forwardAuth.trustForwardHeader | default true }}
+    authResponseHeaders:
+      {{- toYaml .Values.traefik.middlewares.forwardAuth.authResponseHeaders | nindent 6 }}
+---
+{{- end }}
+{{- if .Values.traefik.middlewares.headers.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-headers
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  headers:
+    stsSeconds: {{ .Values.traefik.middlewares.headers.stsSeconds | default 31536000 }}
+    stsIncludeSubdomains: true
+    stsPreload: true
+    forceSTSHeader: true
+    customFrameOptionsValue: SAMEORIGIN
+    contentTypeNosniff: true
+    browserXssFilter: true
+    referrerPolicy: "no-referrer"
+    customResponseHeaders:
+      X-Powered-By: "Nextcloud"
+---
+{{- end }}
+{{- if .Values.traefik.middlewares.redirectRegex.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-redirectregex
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  redirectRegex:
+    permanent: true
+    regex: "^https://(.*)/\\.well-known/(card|cal)dav"
+    replacement: "https://${1}/remote.php/dav/"
+---
+{{- end }}
+{{- if .Values.traefik.middlewares.buffering.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-buffering
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  buffering:
+    maxRequestBodyBytes: {{ .Values.traefik.middlewares.buffering.maxRequestBodyBytes | default 10737418240 }}
+    memRequestBodyBytes: {{ .Values.traefik.middlewares.buffering.memRequestBodyBytes | default 20971520 }}
+---
+{{- end }}
+{{- if .Values.traefik.middlewares.compress.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-compress
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  compress: {}
+---
+{{- end }}
+{{- if .Values.traefik.middlewares.ipAllowList.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-ip-allowlist
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  ipAllowList:
+    sourceRange:
+      {{- toYaml .Values.traefik.middlewares.ipAllowList.sourceRange | nindent 6 }}
+{{- end }}
+{{- end }}

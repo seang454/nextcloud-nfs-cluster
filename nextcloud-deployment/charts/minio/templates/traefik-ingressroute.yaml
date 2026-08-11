@@ -1,0 +1,22 @@
+{{- if and .Values.traefik.enabled .Values.traefik.ingressRoute.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "minio.fullname" . }}-console
+  labels:
+    {{- include "minio.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.console.host }}`)
+      kind: Rule
+      services:
+        - name: {{ include "minio.fullname" . }}
+          port: console
+  {{- if .Values.traefik.tls.enabled }}
+  tls:
+    secretName: {{ .Values.traefik.tls.secretName | default "minio-console-tls" }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,186 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nextcloud.fullname" . }}
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nextcloud.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "nextcloud.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "nextcloud.serviceAccountName" . }}
+      securityContext:
+        fsGroup: 33   # www-data
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+        # Wait for MariaDB to accept TCP connections before starting the
+        # Nextcloud entrypoint. Without this, the first-boot installer runs
+        # while MariaDB is still initialising, silently fails, and leaves
+        # Nextcloud in a broken "not installed" state (causing cron CrashLoopBackOff).
+        - name: wait-for-mariadb
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MariaDB at {{ include "nextcloud.mariadb.host" . }}:3306..."
+              until nc -z {{ include "nextcloud.mariadb.host" . }} 3306; do
+                echo "MariaDB not ready yet, retrying in 3s..."
+                sleep 3
+              done
+              echo "MariaDB is accepting connections."
+        # Wait for Redis as well — Nextcloud configures it during install.
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Redis at {{ include "nextcloud.redis.host" . }}:6379..."
+              until nc -z {{ include "nextcloud.redis.host" . }} 6379; do
+                echo "Redis not ready yet, retrying in 3s..."
+                sleep 3
+              done
+              echo "Redis is ready."
+      containers:
+        # --- PHP-FPM: runs the actual Nextcloud application code ---
+
+        - name: php-fpm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: fpm
+              containerPort: 9000
+          env:
+            - name: MYSQL_HOST
+              value: {{ include "nextcloud.mariadb.host" . }}
+            - name: MYSQL_DATABASE
+              value: {{ .Values.database.name | quote }}
+            - name: MYSQL_USER
+              value: {{ .Values.database.username | quote }}
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret | default (printf "%s-mariadb-auth" .Release.Name) }}
+                  key: mariadb-password
+            - name: REDIS_HOST
+              value: {{ include "nextcloud.redis.host" . }}
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-redis-auth" .Release.Name }}
+                  key: redis-password
+            - name: NEXTCLOUD_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.admin.existingSecret | default (printf "%s-admin" (include "nextcloud.fullname" .)) }}
+                  key: username
+            - name: NEXTCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.admin.existingSecret | default (printf "%s-admin" (include "nextcloud.fullname" .)) }}
+                  key: password
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              # Space-separated list: public domain + internal service name + localhost
+              value: "{{ .Values.global.domain }} {{ include "nextcloud.fullname" . }} localhost"
+            - name: OBJECTSTORE_S3_BUCKET
+              value: {{ .Values.objectStore.bucket | quote }}
+            - name: OBJECTSTORE_S3_HOST
+              value: {{ include "nextcloud.minio.host" . }}
+            - name: OBJECTSTORE_S3_PORT
+              value: {{ .Values.objectStore.port | quote }}
+            - name: OBJECTSTORE_S3_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.objectStore.existingSecret | default (printf "%s-minio-auth" .Release.Name) }}
+                  key: root-user
+            - name: OBJECTSTORE_S3_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.objectStore.existingSecret | default (printf "%s-minio-auth" .Release.Name) }}
+                  key: root-password
+            - name: OBJECTSTORE_S3_REGION
+              value: {{ .Values.objectStore.region | quote }}
+            - name: OBJECTSTORE_S3_SSL
+              value: {{ .Values.objectStore.ssl | quote }}
+            - name: OBJECTSTORE_S3_USEPATH_STYLE
+              value: {{ .Values.objectStore.usePathStyle | quote }}
+            - name: OBJECTSTORE_S3_AUTOCREATE
+              value: "false"   # bucket is created by the minio-create-bucket Job
+            - name: PHP_MEMORY_LIMIT
+              value: {{ .Values.phpMemoryLimit | quote }}
+            - name: PHP_UPLOAD_LIMIT
+              value: {{ .Values.phpUploadLimit | quote }}
+          volumeMounts:
+            - name: nextcloud-html
+              mountPath: /var/www/html
+          resources:
+            {{- toYaml .Values.resources.php | nindent 12 }}
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "php-fpm-healthcheck || exit 0"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: fpm
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          startupProbe:
+            tcpSocket:
+              port: fpm
+            failureThreshold: 180   # 30 min — first-boot init (file copy + occ install) can be slow
+            periodSeconds: 10
+
+        # --- nginx: serves static assets + fronts php-fpm over FastCGI on localhost ---
+        - name: nginx
+          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: nextcloud-html
+              mountPath: /var/www/html
+              readOnly: true
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          resources:
+            {{- toYaml .Values.resources.nginx | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /status.php
+              port: http
+              httpHeaders:
+                # Use localhost — probe runs inside the pod (not through ingress).
+                # Using the public domain caused 400 Bad Request when trusted_domains
+                # was not yet configured to include it.
+                - name: Host
+                  value: "localhost"
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+
+      volumes:
+        - name: nextcloud-html
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-html" (include "nextcloud.fullname" .)) }}
+        - name: nginx-conf
+          configMap:
+            name: {{ include "nextcloud.fullname" . }}-nginx-conf
