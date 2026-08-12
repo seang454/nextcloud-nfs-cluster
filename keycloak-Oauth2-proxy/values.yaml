@@ -92,6 +92,12 @@ keycloak:
     maxReplicas: 5
     targetCPUUtilizationPercentage: 75
 
+  realmImport:
+    enabled: true
+    realmName: "enterprise-realm"
+    clientId: "oauth2-proxy"
+    clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe"
+
 # ---------------------------------------------------------------------------
 # 3. OAuth2-Proxy Subchart Configuration
 # (Service Address: http://oauth2-proxy.default.svc.cluster.local:4180)
@@ -112,8 +118,8 @@ oauth2-proxy:
 
   config:
     clientID: "oauth2-proxy"
-    clientSecret: "YOUR_KEYCLOAK_CLIENT_SECRET"
-    cookieSecret: "YOUR_GENERATED_32_BYTE_BASE64_SECRET"
+    clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe"
+    cookieSecret: "dquJq9nDOyt+IaQ5PsfnWRpK1KPr3HNYKctH4WhF9Tc="
 
   extraArgs:
     provider: "oidc"

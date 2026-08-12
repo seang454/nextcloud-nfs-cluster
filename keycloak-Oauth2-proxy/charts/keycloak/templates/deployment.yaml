@@ -25,6 +25,9 @@ spec:
             {{- else }}
             - "start-dev"
             {{- end }}
+            {{- if .Values.realmImport.enabled }}
+            - "--import-realm"
+            {{- end }}
           env:
             - name: KEYCLOAK_ADMIN
               value: {{ .Values.admin.username | quote }}
@@ -82,4 +85,16 @@ spec:
             periodSeconds: 15
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.realmImport.enabled }}
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          {{- end }}
+      {{- if .Values.realmImport.enabled }}
+      volumes:
+        - name: realm-import
+          configMap:
+            name: {{ include "keycloak.fullname" . }}-realm-import
+      {{- end }}
 {{- end }}

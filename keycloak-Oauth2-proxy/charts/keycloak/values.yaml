@@ -48,3 +48,10 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 75
+
+realmImport:
+  enabled: true
+  realmName: "enterprise-realm"
+  clientId: "oauth2-proxy"
+  clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe"
+
