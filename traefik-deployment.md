@@ -21,16 +21,16 @@ kubectl create namespace traefik
 
 ## 4. Install Traefik
 
-From the directory containing `values.yaml`:
+From the directory containing `traefik-values.yaml`:
 
 ```bash
 helm install traefik traefik/traefik \
   --namespace traefik \
-  --values values.yaml \
+  --values traefik-values.yaml \
   --wait
 ```
 
-This installs Traefik using your custom `values.yaml`.
+This installs Traefik using your custom `traefik-values.yaml`.
 
 ---
 
