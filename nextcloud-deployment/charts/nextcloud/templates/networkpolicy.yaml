@@ -13,7 +13,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # allow traffic from anywhere in-cluster to nginx (ingress controller sits in front)
+    # allow traffic from anywhere in-cluster to Nextcloud container (Traefik Ingress Controller sits in front)
     - from: []
       ports:
         - protocol: TCP

@@ -1,0 +1,24 @@
+{{- if and .Values.traefik .Values.traefik.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ template "oauth2-proxy.fullname" . }}
+  namespace: {{ template "oauth2-proxy.namespace" $ }}
+  labels:
+    app: {{ template "oauth2-proxy.name" . }}
+    {{- include "oauth2-proxy.labels" . | indent 4 }}
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.traefik.domain }}`)
+      kind: Rule
+      services:
+        - name: {{ template "oauth2-proxy.fullname" . }}
+          port: {{ .Values.service.portNumber }}
+  {{- if .Values.traefik.tls.enabled }}
+  tls:
+    secretName: {{ .Values.traefik.tls.secretName | default "oauth2-proxy-tls" }}
+  {{- end }}
+{{- end }}

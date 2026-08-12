@@ -108,6 +108,13 @@ oauth2-proxy:
   service:
     portNumber: 4180
 
+  traefik:
+    enabled: true
+    domain: "auth.example.com"
+    tls:
+      enabled: true
+      secretName: "oauth2-proxy-tls"
+
   resources:
     requests:
       cpu: 25m

@@ -4,25 +4,12 @@ global:
 extraEnv:
   - name: TEST_ENV_VAR_2
     value: '{{ $.Release.Name }}'
-ingress:
+traefik:
   enabled: true
-  hosts:
-    - "{{ $.Release.Name }}.local"
+  domain: "{{ $.Release.Name }}.local"
   tls:
-    - hosts:
-        - "{{ $.Release.Name }}.local"
-  annotations:
-    test-annotations/test: "{{ $.Release.Name }}"
-  labels:
-    test-annotations/test: "{{ $.Release.Name }}"
-  extraPaths:
-    - path: /ping
-      pathType: Prefix
-      backend:
-        service:
-          name: '{{ include "oauth2-proxy.fullname" $ }}'
-          port:
-            name: '{{ $.Values.httpScheme }}'
+    enabled: true
+    secretName: "{{ $.Release.Name }}-tls"
 oauth2-proxy:
   checkDeprecation: false
   config:

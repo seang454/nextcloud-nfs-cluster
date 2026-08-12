@@ -1,0 +1,121 @@
+# ===========================================================================
+# keycloak-Oauth2-proxy Umbrella Chart Production Values
+# ===========================================================================
+#
+# PRODUCTION PREREQUISITE: Create the real Secrets referenced below *before*
+# installing (ideally using External Secrets Operator pulling from Vault).
+#
+# 1. keycloak-postgres-auth:
+#    - postgres-password: (used by PostgreSQL)
+#    - password: (used by Keycloak to connect to PostgreSQL)
+#
+# 2. keycloak-admin-auth:
+#    - admin-password: (Keycloak admin password)
+#
+# 3. oauth2-proxy-secret:
+#    - client-id: (OIDC client ID, e.g., oauth2-proxy)
+#    - client-secret: (OIDC client secret generated in Keycloak)
+#    - cookie-secret: (base64 encoded cookie secret)
+#
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# 1. PostgreSQL Subchart Configuration (Production Ready)
+# ---------------------------------------------------------------------------
+postgres:
+  enabled: true
+  auth:
+    existingSecret: "keycloak-postgres-auth"
+    existingSecretPasswordKey: "postgres-password"
+  persistence:
+    storageClass: "nfs-client"
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# ---------------------------------------------------------------------------
+# 2. Keycloak Subchart Configuration (High Availability Mode)
+# ---------------------------------------------------------------------------
+keycloak:
+  enabled: true
+  production: true                     # Run in Keycloak production mode
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+
+  db:
+    enabled: true
+    vendor: "postgres"
+    url: "jdbc:postgresql://keycloak-oauth2-proxy-postgres:5432/keycloak"
+    username: "keycloak"
+    existingSecret: "keycloak-postgres-auth"
+    existingSecretPasswordKey: "password"
+
+  admin:
+    username: admin
+    existingSecret: "keycloak-admin-auth"
+    existingSecretPasswordKey: "admin-password"
+
+  proxy:
+    headers: "xforwarded"
+    hostname: "keycloak.seang.shop"
+    hostnameStrict: "false"
+
+  traefik:
+    enabled: true
+    domain: "keycloak.seang.shop"
+    tls:
+      enabled: true
+      secretName: "keycloak-tls"
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+  realmImport:
+    enabled: true
+    realmName: "enterprise-realm"
+    clientId: "oauth2-proxy"
+    clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe" # Note: client secret generated at runtime should override this.
+
+# ---------------------------------------------------------------------------
+# 3. OAuth2-Proxy Subchart Configuration (High Availability Mode)
+# ---------------------------------------------------------------------------
+oauth2-proxy:
+  enabled: true
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+
+  config:
+    existingSecret: "oauth2-proxy-secret"
+
+  traefik:
+    enabled: true
+    domain: "auth.seang.shop"
+    tls:
+      enabled: true
+      secretName: "oauth2-proxy-tls"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
