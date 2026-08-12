@@ -3,19 +3,24 @@ name: cloud-storage-platform
 description: >
   Production Helm chart for a self-hosted cloud storage platform:
   Nextcloud (drive/UI) backed by MariaDB (metadata), Redis (file locking/cache),
-  and MinIO (S3-compatible primary object storage). Each component is its own
-  local subchart under charts/, using official upstream images directly
-  (mariadb:11, redis:7-alpine, minio/minio) -- not Bitnami, see README for why.
+  and MinIO (S3-compatible primary object storage).
 type: application
 version: 1.0.0
 appVersion: "29"
-keywords:
-  - nextcloud
-  - minio
-  - object-storage
-  - mariadb
-  - redis
-  - cloud-storage
 maintainers:
   - name: Pengseang
 home: https://github.com/nextcloud/docker
+
+dependencies:
+  - name: mariadb
+    version: "1.0.0"
+    condition: mariadb.enabled
+  - name: redis
+    version: "1.0.0"
+    condition: redis.enabled
+  - name: minio
+    version: "1.0.0"
+    condition: minio.enabled
+  - name: nextcloud
+    version: "1.0.0"
+    condition: nextcloud.enabled

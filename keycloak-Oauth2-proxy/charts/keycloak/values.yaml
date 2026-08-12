@@ -1,0 +1,50 @@
+enabled: true
+production: true   # Set to true for production mode ("start"), false for dev ("start-dev")
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "24.0.5"
+  pullPolicy: IfNotPresent
+
+admin:
+  username: admin
+  password: "CHANGE_ME_KEYCLOAK_ADMIN"
+  existingSecret: ""
+
+db:
+  enabled: true
+  vendor: "postgres"
+  url: "jdbc:postgresql://keycloak-Oauth2-proxy-postgres:5432/keycloak"
+  username: "keycloak"
+  password: "CHANGE_ME_POSTGRES_PASSWORD"
+  existingSecret: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+proxy:
+  headers: "xforwarded"
+  hostname: "keycloak.example.com"
+  hostnameStrict: "false"
+
+traefik:
+  enabled: true
+  domain: "keycloak.example.com"
+  tls:
+    enabled: true
+    secretName: "keycloak-tls"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75

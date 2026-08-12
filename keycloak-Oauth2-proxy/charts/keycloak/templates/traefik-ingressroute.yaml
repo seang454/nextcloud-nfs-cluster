@@ -1,0 +1,22 @@
+{{- if and .Values.enabled .Values.traefik .Values.traefik.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.traefik.domain }}`)
+      kind: Rule
+      services:
+        - name: {{ include "keycloak.fullname" . }}
+          port: {{ .Values.service.port }}
+  {{- if .Values.traefik.tls.enabled }}
+  tls:
+    secretName: {{ .Values.traefik.tls.secretName | default "keycloak-tls" }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,85 @@
+{{- if .Values.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "keycloak.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: keycloak
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- if .Values.production }}
+            - "start"
+            {{- else }}
+            - "start-dev"
+            {{- end }}
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: {{ .Values.admin.username | quote }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              {{- if .Values.admin.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.admin.existingSecret }}
+                  key: {{ .Values.admin.existingSecretPasswordKey | default "admin-password" }}
+              {{- else }}
+              value: {{ .Values.admin.password | quote }}
+              {{- end }}
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            - name: KC_PROXY_HEADERS
+              value: {{ .Values.proxy.headers | quote }}
+            - name: KC_HOSTNAME_STRICT
+              value: {{ .Values.proxy.hostnameStrict | default "false" | quote }}
+            {{- if .Values.proxy.hostname }}
+            - name: KC_HOSTNAME
+              value: {{ .Values.proxy.hostname | quote }}
+            {{- end }}
+            {{- if .Values.db.enabled }}
+            - name: KC_DB
+              value: {{ .Values.db.vendor | default "postgres" | quote }}
+            - name: KC_DB_URL
+              value: {{ .Values.db.url | quote }}
+            - name: KC_DB_USERNAME
+              value: {{ .Values.db.username | quote }}
+            - name: KC_DB_PASSWORD
+              {{- if .Values.db.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret }}
+                  key: {{ .Values.db.existingSecretPasswordKey | default "password" }}
+              {{- else }}
+              value: {{ .Values.db.password | quote }}
+              {{- end }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /realms/master
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}

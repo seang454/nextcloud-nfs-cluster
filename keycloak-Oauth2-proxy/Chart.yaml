@@ -1,0 +1,17 @@
+apiVersion: v2
+name: keycloak-Oauth2-proxy
+description: Umbrella Helm chart containing Keycloak IdP, PostgreSQL, and OAuth2-Proxy local subcharts
+type: application
+version: 1.0.0
+appVersion: "24.0.5"
+
+dependencies:
+  - name: postgres
+    version: "1.0.0"
+    condition: postgres.enabled
+  - name: keycloak
+    version: "1.0.0"
+    condition: keycloak.enabled
+  - name: oauth2-proxy
+    version: "7.7.x"
+    condition: oauth2-proxy.enabled

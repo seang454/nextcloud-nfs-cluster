@@ -1,0 +1,17 @@
+===========================================================================
+  Keycloak & OAuth2-Proxy Authentication Stack Deployed Successfully!
+===========================================================================
+
+1. Keycloak Identity Provider (IdP):
+   - Internal Service: http://{{ include "keycloak-Oauth2-proxy.fullname" . }}-keycloak:8080
+   - Admin Username:   {{ .Values.keycloak.admin.username }}
+
+2. OAuth2-Proxy ForwardAuth Gateway:
+   - Internal Service: http://oauth2-proxy.default.svc.cluster.local:4180
+   - Traefik Address:  http://oauth2-proxy.{{ .Release.Namespace }}.svc.cluster.local:4180
+
+3. Next Steps:
+   a. Access Keycloak admin console at: https://{{ .Values.keycloak.traefik.domain }}
+   b. Create an OIDC Client named 'oauth2-proxy' inside your Keycloak realm.
+   c. Update 'clientSecret' and 'cookieSecret' in values.yaml and upgrade:
+      helm upgrade keycloak-oauth2-proxy . -n {{ .Release.Namespace }}
