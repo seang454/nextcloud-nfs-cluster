@@ -1,0 +1,30 @@
+{{- if and .Values.keycloak.enabled .Values.keycloak.traefik.enabled .Values.keycloak.traefik.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keycloak-tls
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretName: {{ .Values.keycloak.traefik.tls.secretName | default "keycloak-tls" }}
+  dnsNames:
+    - {{ .Values.keycloak.traefik.domain }}
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+{{- end }}
+---
+{{- $oauth2Proxy := index .Values "oauth2-proxy" -}}
+{{- if and $oauth2Proxy.enabled $oauth2Proxy.traefik.enabled $oauth2Proxy.traefik.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: oauth2-proxy-tls
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretName: {{ $oauth2Proxy.traefik.tls.secretName | default "oauth2-proxy-tls" }}
+  dnsNames:
+    - {{ $oauth2Proxy.traefik.domain }}
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+{{- end }}

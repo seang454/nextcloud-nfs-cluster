@@ -118,3 +118,26 @@ This means each Traefik pod can listen directly on the Kubernetes node's:
 Make sure ports `80` and `443` are not already being used by another service on the Kubernetes nodes.
 
 If you are using **K3s**, check whether the built-in Traefik is already installed before deploying another Traefik instance. Two Traefik instances cannot both bind to the same host ports on the same node.
+
+---
+
+## TLS Certificate Flow (Traefik + cert-manager)
+
+The SSL certificates are issued by **cert-manager** (via Let's Encrypt) and dynamically loaded and served by **Traefik**:
+
+```text
+Visitor Browser ◄──[ HTTPS (Secured by Traefik) ]──► Traefik Ingress
+                                                       ▲
+                                                       │ Loads Certs from
+                                                       ▼
+                                                 Kubernetes Secret
+                                                       ▲
+                                                       │ Updates Certs
+                                                       ▼
+                                                 Cert-Manager ◄──[ ACME Protocol ]──► Let's Encrypt
+```
+
+### Component Roles:
+* **Cert-Manager**: Manages the lifecycle of certificates. It handles requesting, validating, and renewing the certificate files from Let's Encrypt, then saves them inside Kubernetes as Secrets.
+* **Traefik Ingress**: Directs traffic into your cluster. It automatically loads the certificate files from the Kubernetes Secrets and uses them to establish secure HTTPS connections with visitors' browsers.
+
