@@ -57,7 +57,7 @@ keycloak:
   db:
     enabled: true
     vendor: "postgres"
-    url: "jdbc:postgresql://keycloak-Oauth2-proxy-postgres:5432/keycloak"
+    url: "jdbc:postgresql://keycloak-oauth2-postgres:5432/keycloak"
     username: "keycloak"
     password: "CHANGE_ME_POSTGRES_PASSWORD"
     existingSecret: ""
@@ -68,23 +68,23 @@ keycloak:
 
   proxy:
     headers: "xforwarded"
-    hostname: "keycloak.example.com"
+    hostname: "keycloak.seang.shop"
     hostnameStrict: "false"
 
   traefik:
     enabled: true
-    domain: "keycloak.example.com"
+    domain: "keycloak.seang.shop"
     tls:
       enabled: true
       secretName: "keycloak-tls"
 
   resources:
     requests:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 300m
+      memory: 1.5Gi
     limits:
-      cpu: 500m
-      memory: 768Mi
+      cpu: "1.5"
+      memory: 2.5Gi
 
   autoscaling:
     enabled: false                     # Set true in production to enable HPA
@@ -110,7 +110,7 @@ oauth2-proxy:
 
   traefik:
     enabled: true
-    domain: "auth.example.com"
+    domain: "auth.seang.shop"
     tls:
       enabled: true
       secretName: "oauth2-proxy-tls"
@@ -126,14 +126,15 @@ oauth2-proxy:
   config:
     clientID: "oauth2-proxy"
     clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe"
-    cookieSecret: "dquJq9nDOyt+IaQ5PsfnWRpK1KPr3HNYKctH4WhF9Tc="
+    cookieSecret: "dquJq9nDOyt+IaQ5PsfnWRpK1KPr3HNY"
 
   extraArgs:
     provider: "oidc"
-    oidc-issuer-url: "https://keycloak.example.com/realms/enterprise-realm"
+    oidc-issuer-url: "https://keycloak.seang.shop/realms/enterprise-realm"
     email-domain: "*"
-    upstreams: "file:///dev/null"
+    upstream: "file:///dev/null"
     pass-user-headers: "true"
     set-xauthrequest: "true"
     cookie-secure: "false"
     skip-provider-button: "true"
+    ssl-insecure-skip-verify: "true"

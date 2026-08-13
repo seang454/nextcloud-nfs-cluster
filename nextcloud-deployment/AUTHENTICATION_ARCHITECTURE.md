@@ -27,7 +27,7 @@ sequenceDiagram
 
     rect rgb(240, 248, 255)
         note over User, Keycloak: Web UI Authentication Flow (Protected by forwardAuth)
-        User->>Traefik: 1. GET https://nextcloud.example.com
+        User->>Traefik: 1. GET https://nextcloud.seang.shop
         Traefik->>Proxy: 2. forwardAuth Sub-request (HTTP GET /)
         
         alt User is NOT Authenticated (No Session Cookie)
@@ -82,7 +82,7 @@ All components reside inside the Kubernetes cluster for security, high availabil
 
 | Component | Service Address / Namespace | Primary Responsibility |
 | :--- | :--- | :--- |
-| **Keycloak** | `https://keycloak.example.com` | **Identity Provider (IdP)**. Stores users, handles password policies, 2FA/MFA, social logins, and syncs with Active Directory / LDAP. |
+| **Keycloak** | `https://keycloak.seang.shop` | **Identity Provider (IdP)**. Stores users, handles password policies, 2FA/MFA, social logins, and syncs with Active Directory / LDAP. |
 | **OAuth2-Proxy** | `http://oauth2-proxy.default.svc.cluster.local:4180` | **Auth Gateway / Bridge**. Translates Traefik `forwardAuth` sub-requests into OIDC standard flows with Keycloak. Manages browser session cookies. |
 | **Traefik `forwardAuth`** | Cluster-wide Middleware | **Perimeter Gatekeeper**. Intercepts incoming web traffic and queries `oauth2-proxy` before routing traffic to Nextcloud. |
 | **Nextcloud** | Internal Service | **Application**. Serves files, calendar, contacts, and collaboration tools. |
@@ -97,7 +97,7 @@ All components reside inside the Kubernetes cluster for security, high availabil
    - **Client ID:** `oauth2-proxy`
    - **Client Protocol:** `openid-connect`
    - **Access Type:** `confidential`
-   - **Valid Redirect URIs:** `https://nextcloud.example.com/oauth2/callback`
+   - **Valid Redirect URIs:** `https://nextcloud.seang.shop/oauth2/callback`
 3. Note the generated **Client Secret**.
 
 ---
@@ -115,13 +115,13 @@ config:
 
 extraArgs:
   provider: "oidc"
-  oidc-issuer-url: "https://keycloak.example.com/realms/enterprise-realm"
+  oidc-issuer-url: "https://keycloak.seang.shop/realms/enterprise-realm"
   email-domain: "*"
   upstreams: "file:///dev/null"
   pass-user-headers: true
   set-xauthrequest: true
   cookie-secure: true
-  cookie-domain: ".example.com"
+  cookie-domain: ".seang.shop"
 
 service:
   portNumber: 4180

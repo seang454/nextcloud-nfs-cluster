@@ -35,4 +35,4 @@ traefik:
 
 ingress:
   console:
-    host: "minio-console.example.com"
+    host: "minio.seang.shop"

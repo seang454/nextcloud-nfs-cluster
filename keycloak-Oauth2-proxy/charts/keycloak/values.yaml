@@ -14,7 +14,7 @@ admin:
 db:
   enabled: true
   vendor: "postgres"
-  url: "jdbc:postgresql://keycloak-Oauth2-proxy-postgres:5432/keycloak"
+  url: "jdbc:postgresql://keycloak-oauth2-postgres:5432/keycloak"
   username: "keycloak"
   password: "CHANGE_ME_POSTGRES_PASSWORD"
   existingSecret: ""
@@ -25,23 +25,23 @@ service:
 
 proxy:
   headers: "xforwarded"
-  hostname: "keycloak.example.com"
+  hostname: "keycloak.seang.shop"
   hostnameStrict: "false"
 
 traefik:
   enabled: true
-  domain: "keycloak.example.com"
+  domain: "keycloak.seang.shop"
   tls:
     enabled: true
     secretName: "keycloak-tls"
 
 resources:
   requests:
-    cpu: 250m
-    memory: 512Mi
+    cpu: 300m
+    memory: 1.5Gi
   limits:
-    cpu: "1"
-    memory: 1Gi
+    cpu: "1.5"
+    memory: 2.5Gi
 
 autoscaling:
   enabled: false
