@@ -181,4 +181,38 @@ sequenceDiagram
 9. **Secure HTTPS Session**:
    When visitors access `https://keycloak.seang.shop`, Traefik handles the TLS handshake on port 443 using the Let's Encrypt certificate, encrypting all traffic.
 
+### Ingress & TLS Integration Details
+
+The connection between Traefik and Cert-Manager happens through two key integration points:
+
+#### 1. The Shared Secret (`keycloak-tls`)
+This is the bridge where Cert-Manager saves the certificate, and Traefik picks it up to serve it to the browser.
+* **In Cert-Manager ([`certificates.yaml`](keycloak-Oauth2-proxy/templates/certificates.yaml#L8-L10))**: Tell cert-manager to request a certificate and store it in a secret named `keycloak-tls`:
+  ```yaml
+  spec:
+    secretName: keycloak-tls    # <--- Cert-Manager saves the certificate here
+    dnsNames:
+      - keycloak.seang.shop
+  ```
+* **In Traefik ([`traefik-ingressroute.yaml`](keycloak-Oauth2-proxy/charts/keycloak/templates/traefik-ingressroute.yaml#L19-L21))**: Tell Traefik to encrypt incoming requests for Keycloak using the certificate inside that exact same secret:
+  ```yaml
+    tls:
+      secretName: keycloak-tls  # <--- Traefik reads the certificate from here
+  ```
+
+#### 2. The HTTP-01 Solver Ingress Class (`traefik`)
+When Let's Encrypt wants to verify domain ownership, cert-manager has to temporarily host a verification page on port 80. To guide the verification traffic through your ingress controller, they connect via the Ingress Class:
+* **In the ClusterIssuer ([`values.yaml`](keycloak-Oauth2-proxy/values.yaml#L154-L157))**:
+  ```yaml
+      solvers:
+        - http01:
+            ingress:
+              class: "traefik"  # <--- Tells cert-manager to use Traefik to route the validation request
+  ```
+* **How this validation works**:
+  1. Cert-Manager creates a temporary solver pod and a standard Kubernetes `Ingress` rule.
+  2. Because the ingress class is set to `traefik`, the Traefik Ingress controller automatically reads it and routes incoming verification requests (`http://keycloak.seang.shop/.well-known/acme-challenge/...`) to the solver pod.
+  3. Once Let's Encrypt completes the verification, cert-manager deletes the temporary ingress and pod.
+
+
 

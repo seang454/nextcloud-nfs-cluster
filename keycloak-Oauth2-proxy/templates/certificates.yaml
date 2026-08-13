@@ -9,7 +9,7 @@ spec:
   dnsNames:
     - {{ .Values.keycloak.traefik.domain }}
   issuerRef:
-    name: letsencrypt-prod
+    name: {{ (index $.Values "cert-manager").clusterIssuer.name | default "letsencrypt-prod" }}
     kind: ClusterIssuer
 {{- end }}
 ---
@@ -25,6 +25,6 @@ spec:
   dnsNames:
     - {{ $oauth2Proxy.traefik.domain }}
   issuerRef:
-    name: letsencrypt-prod
+    name: {{ (index $.Values "cert-manager").clusterIssuer.name | default "letsencrypt-prod" }}
     kind: ClusterIssuer
 {{- end }}

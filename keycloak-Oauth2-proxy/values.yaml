@@ -138,3 +138,19 @@ oauth2-proxy:
     cookie-secure: "false"
     skip-provider-button: "true"
     ssl-insecure-skip-verify: "true"
+
+# ---------------------------------------------------------------------------
+# 4. Cert-Manager Global Configuration
+# ---------------------------------------------------------------------------
+cert-manager:
+  enabled: true
+  clusterIssuer:
+    name: "letsencrypt-prod"
+    email: "pengseangsim210@gmail.com"
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+    privateKeySecretRef: "letsencrypt-prod"
+    solvers:
+      - http01:
+          ingress:
+            class: "traefik"
+
