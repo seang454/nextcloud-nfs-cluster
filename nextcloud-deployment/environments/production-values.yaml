@@ -33,8 +33,8 @@ mariadb:
     storageClass: "nfs-client"
     size: 50Gi
   resources:
-    requests: { cpu: 500m, memory: 1Gi }
-    limits:   { cpu: "2",  memory: 2Gi }
+    requests: { cpu: 300m, memory: 512Mi }
+    limits:   { cpu: "1",  memory: 1Gi }
 
 redis:
   existingSecret: "csp-redis-auth"
@@ -42,8 +42,8 @@ redis:
     storageClass: "nfs-client"
     size: 10Gi
   resources:
-    requests: { cpu: 200m, memory: 256Mi }
-    limits:   { cpu: "1",  memory: 1Gi }
+    requests: { cpu: 100m, memory: 128Mi }
+    limits:   { cpu: 500m,  memory: 256Mi }
 
 minio:
   existingSecret: "csp-minio-auth"
@@ -51,18 +51,18 @@ minio:
     storageClass: "nfs-client"
     size: 500Gi
   resources:
-    requests: { cpu: 500m, memory: 1Gi }
-    limits:   { cpu: "2",  memory: 4Gi }
+    requests: { cpu: 300m, memory: 512Mi }
+    limits:   { cpu: "1",  memory: 2Gi }
   traefik:
     ingressRoute:
       enabled: false
 
 nextcloud:
-  replicaCount: 3
+  replicaCount: 2
   autoscaling:
-    enabled: true
-    minReplicas: 3
-    maxReplicas: 8
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 65
   admin:
     existingSecret: "csp-nextcloud-admin"
@@ -71,17 +71,17 @@ nextcloud:
   objectStore:
     existingSecret: "csp-minio-auth"
   persistence:
-    existingClaim: "nfs-pvc"
+    existingClaim: ""
     storageClass: "nfs-client"
     accessMode: ReadWriteMany
     size: 20Gi
   resources:
     php:
-      requests: { cpu: "1",   memory: 2Gi }
-      limits:   { cpu: "3",   memory: 4Gi }
+      requests: { cpu: 500m,   memory: 1Gi }
+      limits:   { cpu: "2",   memory: 2Gi }
     nginx:
-      requests: { cpu: 200m,  memory: 256Mi }
-      limits:   { cpu: "1",   memory: 512Mi }
+      requests: { cpu: 100m,  memory: 128Mi }
+      limits:   { cpu: 500m,   memory: 256Mi }
   traefik:
     enabled: true
     ingressRoute:

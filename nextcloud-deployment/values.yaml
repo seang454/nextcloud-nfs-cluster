@@ -128,7 +128,7 @@ nextcloud:
 
   persistence:
     enabled: true
-    existingClaim: "nfs-pvc"   # Set to "nfs-pvc" or leave empty to provision dynamically
+    existingClaim: ""   # Set to "nfs-pvc" or leave empty to provision dynamically
     storageClass: "nfs-client"
     accessMode: ReadWriteMany
     size: 10Gi

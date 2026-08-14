@@ -31,7 +31,7 @@ nextcloud:
   autoscaling:
     enabled: false
   persistence:
-    existingClaim: "nfs-pvc"
+    existingClaim: ""
     storageClass: "nfs-client"
     accessMode: ReadWriteMany
     size: 10Gi

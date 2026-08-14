@@ -27,7 +27,7 @@ database:
 
 persistence:
   enabled: true
-  existingClaim: "nfs-pvc"   # Existing PVC name (e.g. nfs-pvc) or empty string to provision dynamically
+  existingClaim: ""   # Existing PVC name (e.g. nfs-pvc) or empty string to provision dynamically
   storageClass: "nfs-client"
   accessMode: ReadWriteMany
   size: 10Gi
