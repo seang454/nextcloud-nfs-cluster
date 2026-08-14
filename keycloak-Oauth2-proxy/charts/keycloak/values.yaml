@@ -3,7 +3,7 @@ production: true   # Set to true for production mode ("start"), false for dev ("
 
 image:
   repository: quay.io/keycloak/keycloak
-  tag: "24.0.5"
+  tag: "26.7.1"
   pullPolicy: IfNotPresent
 
 admin:
