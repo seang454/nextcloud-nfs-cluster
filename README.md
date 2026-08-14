@@ -77,4 +77,5 @@ sequenceDiagram
 
 The global **ClusterIssuer** (`letsencrypt-prod`) for cert-manager is automatically deployed as part of the `keycloak-Oauth2-proxy` Helm chart, so you do not need to configure it manually.
 
-
+to add all resource
+kubectl get $(kubectl api-resources --verbs=list --namespaced -o name | paste -sd, -) -n keycloak-oauth2
