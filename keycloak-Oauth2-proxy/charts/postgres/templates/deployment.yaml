@@ -36,27 +36,39 @@ spec:
               value: {{ .Values.auth.password | quote }}
               {{- end }}
             - name: PGDATA
-              value: "/var/lib/postgresql/data/pgdata"
+              value: "/var/lib/postgresql/data/pgdata_v4"
           ports:
             - name: postgresql
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - {{ .Values.auth.username | quote }}
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
+          startupProbe:
             exec:
               command:
                 - pg_isready
                 - -U
                 - {{ .Values.auth.username | quote }}
             initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.auth.username | quote }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.auth.username | quote }}
+            initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 5
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
@@ -70,4 +82,6 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+      nodeSelector:
+        kubernetes.io/hostname: worker02
 {{- end }}

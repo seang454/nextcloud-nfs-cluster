@@ -77,14 +77,14 @@ spec:
               port: http
             initialDelaySeconds: 90
             periodSeconds: 15
-            failureThreshold: 5
+            failureThreshold: 40
           livenessProbe:
             httpGet:
               path: /realms/master
               port: http
             initialDelaySeconds: 120
             periodSeconds: 15
-            failureThreshold: 5
+            failureThreshold: 40
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.realmImport.enabled }}
