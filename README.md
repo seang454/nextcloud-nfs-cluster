@@ -102,7 +102,7 @@ As soon as [`version.php`](file:///var/www/html/version.php) is written to disk:
 kubectl get pods -n nextcloud-prod -w
 
 # 2. Follow PHP-FPM container logs:
-kubectl logs -n nextcloud-prod -l app.kubernetes.io/name=nextcloud -c php-fpm -f
+kubectl logs -n nextcloud-prod deploy/csp-nextcloud -c php-fpm -f
 
 # 3. Check OIDC auto-installation background log:
 kubectl exec -n nextcloud-prod deploy/csp-nextcloud -c php-fpm -- /bin/sh -c "cat /tmp/poststart.log"
