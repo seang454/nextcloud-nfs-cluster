@@ -23,6 +23,14 @@ spec:
           args:
             - --transaction-isolation=READ-COMMITTED
             - --binlog-format=ROW
+            - --innodb-flush-log-at-trx-commit=2
+            - --innodb-buffer-pool-size=512M
+            - --innodb-log-buffer-size=32M
+            - --innodb-io-capacity=200
+            - --innodb-read-io-threads=4
+            - --innodb-write-io-threads=4
+            - --query-cache-type=0
+            - --query-cache-size=0
           securityContext:
             runAsUser: 999
             runAsNonRoot: true

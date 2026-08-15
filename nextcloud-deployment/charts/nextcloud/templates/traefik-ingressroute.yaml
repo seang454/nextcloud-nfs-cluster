@@ -15,7 +15,7 @@ spec:
   routes:
     {{- if and .Values.traefik.middlewares.forwardAuth.enabled .Values.traefik.middlewares.forwardAuth.excludeSyncPaths }}
     # Route 1: Web UI (Protected by oauth2-forward-auth)
-    - match: Host(`{{ .Values.global.domain }}`) && !PathPrefix(`/remote.php`, `/status.php`, `/.well-known`, `/ocs`)
+    - match: Host(`{{ .Values.global.domain }}`) && !PathPrefix(`/remote.php`) && !PathPrefix(`/status.php`) && !PathPrefix(`/.well-known`) && !PathPrefix(`/ocs`)
       kind: Rule
       services:
         - name: {{ include "nextcloud.fullname" . }}
@@ -48,7 +48,7 @@ spec:
         {{- end }}
 
     # Route 2: Sync Apps & WebDAV APIs (Bypasses forwardAuth for desktop/mobile app compatibility)
-    - match: Host(`{{ .Values.global.domain }}`) && PathPrefix(`/remote.php`, `/status.php`, `/.well-known`, `/ocs`)
+    - match: Host(`{{ .Values.global.domain }}`) && (PathPrefix(`/remote.php`) || PathPrefix(`/status.php`) || PathPrefix(`/.well-known`) || PathPrefix(`/ocs`))
       kind: Rule
       services:
         - name: {{ include "nextcloud.fullname" . }}

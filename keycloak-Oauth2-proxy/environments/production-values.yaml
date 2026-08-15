@@ -29,7 +29,7 @@ postgres:
     existingSecretPasswordKey: "postgres-password"
   persistence:
     storageClass: "nfs-client"
-    size: 20Gi
+    size: 10Gi
   resources:
     requests:
       cpu: 200m
@@ -119,3 +119,17 @@ oauth2-proxy:
     limits:
       cpu: 500m
       memory: 256Mi
+
+  extraArgs:
+    provider: "oidc"
+    oidc-issuer-url: "https://keycloak.seang.shop/realms/enterprise-realm"
+    email-domain: "*"
+    upstream: "file:///dev/null"
+    pass-user-headers: "true"
+    set-xauthrequest: "true"
+    cookie-secure: "false"
+    skip-provider-button: "true"
+    ssl-insecure-skip-verify: "true"
+    reverse-proxy: "true"
+    cookie-domain: ".seang.shop"
+    whitelist-domain: ".seang.shop"

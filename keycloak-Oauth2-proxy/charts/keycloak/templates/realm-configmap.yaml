@@ -10,7 +10,7 @@ data:
     {
       "realm": "{{ .Values.realmImport.realmName | default "enterprise-realm" }}",
       "enabled": true,
-      "registrationAllowed": false,
+      "registrationAllowed": true,
       "resetPasswordAllowed": true,
       "rememberMe": true,
       "verifyEmail": false,

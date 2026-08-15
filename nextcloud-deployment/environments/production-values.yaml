@@ -77,11 +77,11 @@ nextcloud:
     size: 20Gi
   resources:
     php:
-      requests: { cpu: 500m,   memory: 1Gi }
+      requests: { cpu: 100m,  memory: 512Mi }
       limits:   { cpu: "2",   memory: 2Gi }
     nginx:
-      requests: { cpu: 100m,  memory: 128Mi }
-      limits:   { cpu: 500m,   memory: 256Mi }
+      requests: { cpu: 25m,   memory: 64Mi }
+      limits:   { cpu: 500m,  memory: 256Mi }
   traefik:
     enabled: true
     ingressRoute:
@@ -97,7 +97,7 @@ nextcloud:
     tlsStore:
       enabled: true
     serversTransport:
-      enabled: true
+      enabled: false
       name: "backend-internal-mtls"
       insecureSkipVerify: true
     middlewares:
@@ -106,8 +106,8 @@ nextcloud:
         average: 100
         burst: 50
       forwardAuth:
-        enabled: true
-        address: "http://oauth2-proxy.default.svc.cluster.local:4180"
+        enabled: false
+        address: "http://keycloak-oauth2-oauth2-proxy.keycloak-oauth2.svc.k8scluster:4180"
         trustForwardHeader: true
         authResponseHeaders:
           - "X-Auth-User"
@@ -123,6 +123,20 @@ nextcloud:
         maxRequestBodyBytes: 17179869184  # 16GB
       compress:
         enabled: true
+  # OpenID Connect (Keycloak SSO) Integration
+  oidc:
+    enabled: true
+    providerUrl: "https://keycloak.seang.shop/realms/enterprise-realm"
+    clientId: "oauth2-proxy"
+    clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe"
+    autoRedirect: true
+    endSessionRedirect: true
+    logoutUrl: "https://keycloak.seang.shop/realms/enterprise-realm/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2Fnextcloud.seang.shop%2F"
+    buttonText: "Log in with Keycloak"
+    disableRegistration: false
+    redirFallback: true
+    scope: "openid profile email"
+    codeChallengeMethod: "S256"
   podDisruptionBudget:
     enabled: true
     minAvailable: 2

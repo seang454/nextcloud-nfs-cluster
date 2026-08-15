@@ -50,25 +50,27 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 60
+            failureThreshold: 300
           livenessProbe:
             exec:
               command:
                 - pg_isready
                 - -U
                 - {{ .Values.auth.username | quote }}
-            initialDelaySeconds: 5
+            initialDelaySeconds: 15
             periodSeconds: 10
-            timeoutSeconds: 5
+            timeoutSeconds: 15
+            failureThreshold: 30
           readinessProbe:
             exec:
               command:
                 - pg_isready
                 - -U
                 - {{ .Values.auth.username | quote }}
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 5
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 15
+            failureThreshold: 30
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data

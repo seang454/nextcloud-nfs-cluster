@@ -1,0 +1,15 @@
+{{- if and .Values.traefik.enabled .Values.traefik.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-tls
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+spec:
+  dnsNames:
+    - {{ .Values.global.domain | quote }}
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  secretName: {{ .Values.traefik.tls.secretName | default "nextcloud-tls" }}
+{{- end }}

@@ -73,9 +73,40 @@ sequenceDiagram
 
 ---
 
-## Cluster Bootstrap & Prerequisites
+## Nextcloud First-Boot & Initialization Milestones
 
-The global **ClusterIssuer** (`letsencrypt-prod`) for cert-manager is automatically deployed as part of the `keycloak-Oauth2-proxy` Helm chart, so you do not need to configure it manually.
+When Nextcloud is deployed onto a fresh or clean NFS Persistent Volume Claim (PVC), the container entrypoint performs a one-time copy of all core files from `/usr/src/nextcloud` into `/var/www/html/`. Because Nextcloud contains over 18,000 files, this initial copy over WAN NFS takes approximately 3–5 minutes.
 
-to add all resource
-kubectl get $(kubectl api-resources --verbs=list --namespaced -o name | paste -sd, -) -n keycloak-oauth2
+### Monitoring Initialization Progress
+
+| Step | Milestone | Progress Check Command | Target Completion |
+| :--- | :--- | :--- | :--- |
+| **1. AWS SDK Models** | Largest vendor component (`3rdparty/aws`) | `kubectl exec -n nextcloud-prod deploy/csp-nextcloud -c php-fpm -- /bin/sh -c "ls /var/www/html/3rdparty/aws/aws-sdk-php/src/data \| wc -l"` | **`393`** models |
+| **2. Vendor Libraries** | External PHP packages (`3rdparty/`) | `kubectl exec -n nextcloud-prod deploy/csp-nextcloud -c php-fpm -- /bin/sh -c "ls /var/www/html/3rdparty \| wc -l"` | **`46`** vendor packages |
+| **3. Core Directories** | Main Nextcloud application code (`/var/www/html/`) | `kubectl exec -n nextcloud-prod deploy/csp-nextcloud -c php-fpm -- /bin/sh -c "ls -la /var/www/html"` | **`12`** main directories |
+
+### Completion & Readiness Trigger
+
+As soon as [`version.php`](file:///var/www/html/version.php) is written to disk:
+1. `nextcloud-init-sync.lock` is automatically released.
+2. PHP-FPM boots on port 9000.
+3. The `postStart` lifecycle hook automatically installs and enables `oidc_login`.
+4. Both Nextcloud pods transition to **`2/2 Running (Ready)`**.
+
+---
+
+## Helpful Operations Commands
+
+```bash
+# 1. Watch pod readiness in real time:
+kubectl get pods -n nextcloud-prod -w
+
+# 2. Follow PHP-FPM container logs:
+kubectl logs -n nextcloud-prod -l app.kubernetes.io/name=nextcloud -c php-fpm -f
+
+# 3. Check OIDC auto-installation background log:
+kubectl exec -n nextcloud-prod deploy/csp-nextcloud -c php-fpm -- /bin/sh -c "cat /tmp/poststart.log"
+
+# 4. View all namespace resources:
+kubectl get $(kubectl api-resources --verbs=list --namespaced -o name | paste -sd, -) -n nextcloud-prod
+```

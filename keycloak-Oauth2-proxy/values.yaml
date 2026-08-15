@@ -32,10 +32,10 @@ postgres:
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 1Gi
 
 # ---------------------------------------------------------------------------
 # 2. Keycloak Subchart Configuration (Production Mode)
@@ -132,12 +132,18 @@ oauth2-proxy:
     provider: "oidc"
     oidc-issuer-url: "https://keycloak.seang.shop/realms/enterprise-realm"
     email-domain: "*"
-    upstream: "file:///dev/null"
+    upstream: "static://200"
     pass-user-headers: "true"
     set-xauthrequest: "true"
-    cookie-secure: "false"
+    cookie-secure: "true"
     skip-provider-button: "true"
     ssl-insecure-skip-verify: "true"
+    reverse-proxy: "true"
+    cookie-domain: ".seang.shop"
+    whitelist-domain: ".seang.shop"
+    redirect-url: "https://auth.seang.shop/oauth2/callback"
+    insecure-oidc-allow-unverified-email: "true"
+    skip-auth-route: "^/apps/oidc_login/.*"
 
 # ---------------------------------------------------------------------------
 # 4. Cert-Manager Global Configuration

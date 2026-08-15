@@ -186,7 +186,7 @@ nextcloud:
       enabled: true
 
     serversTransport:
-      enabled: true
+      enabled: false
       name: "backend-internal-mtls"
       insecureSkipVerify: true
 
@@ -197,14 +197,14 @@ nextcloud:
         burst: 50
 
       forwardAuth:
-        enabled: true    # Traefik Perimeter Protection enabled
-        address: "http://oauth2-proxy.default.svc.cluster.local:4180"
+        enabled: false   # Disabled: oidc_login handles SSO directly with Keycloak
+        address: "http://keycloak-oauth2-oauth2-proxy.keycloak-oauth2.svc.k8scluster:4180"
         trustForwardHeader: true
         authResponseHeaders:
           - "X-Auth-User"
           - "X-Auth-Email"
           - "Authorization"
-        excludeSyncPaths: true   # Excludes WebDAV & sync endpoints (/remote.php, /status.php, /.well-known, /ocs) so desktop/mobile sync apps work
+        excludeSyncPaths: true
 
       headers:
         enabled: true
@@ -225,6 +225,21 @@ nextcloud:
         enabled: false   # Set true to restrict access by IP
         sourceRange:
           - "35.201.128.109/32"
+
+  # OpenID Connect (Keycloak SSO) Integration
+  oidc:
+    enabled: true
+    providerUrl: "https://keycloak.seang.shop/realms/enterprise-realm"
+    clientId: "oauth2-proxy"
+    clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe"
+    autoRedirect: true
+    endSessionRedirect: true
+    logoutUrl: "https://keycloak.seang.shop/realms/enterprise-realm/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2Fnextcloud.seang.shop%2F"
+    buttonText: "Log in with Keycloak"
+    disableRegistration: false
+    redirFallback: true
+    scope: "openid profile email"
+    codeChallengeMethod: "S256"
 
   podDisruptionBudget:
     enabled: true
