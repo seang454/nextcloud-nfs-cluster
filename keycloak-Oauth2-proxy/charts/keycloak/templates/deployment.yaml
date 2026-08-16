@@ -12,6 +12,10 @@ spec:
       {{- include "keycloak.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- if .Values.realmImport.enabled }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/realm-configmap.yaml") . | sha256sum }}
+      {{- end }}
       labels:
         {{- include "keycloak.selectorLabels" . | nindent 8 }}
     spec:
@@ -45,6 +49,10 @@ spec:
             - "--import-realm"
             {{- end }}
           env:
+            {{- if .Values.realmImport.enabled }}
+            - name: KC_SPI_EXPORT_IMPORT_DIR_STRATEGY
+              value: "OVERWRITE_EXISTING"
+            {{- end }}
             - name: KC_BOOTSTRAP_ADMIN_USERNAME
               value: {{ .Values.admin.username | quote }}
             - name: KC_BOOTSTRAP_ADMIN_PASSWORD
