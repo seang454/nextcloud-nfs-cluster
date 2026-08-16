@@ -28,6 +28,7 @@ postgres:
     existingSecret: "keycloak-postgres-auth"
     existingSecretPasswordKey: "postgres-password"
   persistence:
+    enabled: true
     storageClass: "nfs-client"
     size: 10Gi
   resources:
@@ -104,6 +105,21 @@ oauth2-proxy:
 
   config:
     existingSecret: "oauth2-proxy-secret"
+
+  extraInitContainers:
+    - name: wait-for-keycloak
+      image: curlimages/curl:8.7.1
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for Keycloak OIDC issuer to respond..."
+          until curl -s -f -k --connect-timeout 5 http://keycloak-oauth2:8080/realms/enterprise-realm > /dev/null; do
+            echo "Keycloak is not ready yet. Retrying in 5 seconds..."
+            sleep 5
+          done
+          echo "Keycloak OIDC issuer is ready!"
 
   traefik:
     enabled: true

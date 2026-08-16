@@ -58,7 +58,11 @@ minio:
       enabled: false
 
 nextcloud:
-  replicaCount: 2
+  replicaCount: 1
+  bootstrap:
+    enabled: true
+    lockTimeoutSeconds: 3600
+    waitIntervalSeconds: 5
   autoscaling:
     enabled: false
     minReplicas: 2
@@ -74,7 +78,7 @@ nextcloud:
     existingClaim: ""
     storageClass: "nfs-client"
     accessMode: ReadWriteMany
-    size: 20Gi
+    size: 1Gi
   resources:
     php:
       requests: { cpu: 100m,  memory: 512Mi }
@@ -139,6 +143,6 @@ nextcloud:
     codeChallengeMethod: "S256"
   podDisruptionBudget:
     enabled: true
-    minAvailable: 2
+    minAvailable: 1
   networkPolicy:
     enabled: true

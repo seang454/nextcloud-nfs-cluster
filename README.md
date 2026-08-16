@@ -75,7 +75,9 @@ sequenceDiagram
 
 ## Nextcloud First-Boot & Initialization Milestones
 
-When Nextcloud is deployed onto a fresh or clean NFS Persistent Volume Claim (PVC), the container entrypoint performs a one-time copy of all core files from `/usr/src/nextcloud` into `/var/www/html/`. Because Nextcloud contains over 18,000 files, this initial copy over WAN NFS takes approximately 3–5 minutes.
+When Nextcloud is deployed onto a fresh or clean NFS Persistent Volume Claim (PVC), the `nextcloud-bootstrap` init container performs a one-time copy of all core files from `/usr/src/nextcloud` into `/var/www/html/`. Because Nextcloud contains over 18,000 files, this initial copy over WAN NFS takes approximately 3-5 minutes.
+
+The bootstrap step uses an atomic lock directory on the shared PVC so multiple replicas can be created safely. One pod copies the application files, and the others wait until `/var/www/html/version.php` appears before starting PHP-FPM and nginx.
 
 ### Monitoring Initialization Progress
 
@@ -88,7 +90,7 @@ When Nextcloud is deployed onto a fresh or clean NFS Persistent Volume Claim (PV
 ### Completion & Readiness Trigger
 
 As soon as [`version.php`](file:///var/www/html/version.php) is written to disk:
-1. `nextcloud-init-sync.lock` is automatically released.
+1. Waiting bootstrap init containers continue.
 2. PHP-FPM boots on port 9000.
 3. The `postStart` lifecycle hook automatically installs and enables `oidc_login`.
 4. Both Nextcloud pods transition to **`2/2 Running (Ready)`**.

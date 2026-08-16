@@ -10,7 +10,7 @@ postgres:
 
   image:
     repository: postgres
-    tag: "16-alpine"
+    tag: "16"
     pullPolicy: IfNotPresent
 
   auth:
@@ -127,6 +127,21 @@ oauth2-proxy:
     clientID: "oauth2-proxy"
     clientSecret: "Secret-Keycloak-OAuth2Proxy-2026-ChangeMe"
     cookieSecret: "dquJq9nDOyt+IaQ5PsfnWRpK1KPr3HNY"
+
+  extraInitContainers:
+    - name: wait-for-keycloak
+      image: curlimages/curl:8.7.1
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for Keycloak OIDC issuer to respond..."
+          until curl -s -f -k --connect-timeout 5 http://keycloak-oauth2:8080/realms/enterprise-realm > /dev/null; do
+            echo "Keycloak is not ready yet. Retrying in 5 seconds..."
+            sleep 5
+          done
+          echo "Keycloak OIDC issuer is ready!"
 
   extraArgs:
     provider: "oidc"

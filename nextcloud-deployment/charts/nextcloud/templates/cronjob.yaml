@@ -42,16 +42,35 @@ spec:
                   done
                   echo "Nextcloud is fully installed. Proceeding."
               volumeMounts:
-                - name: nextcloud-html
-                  mountPath: /var/www/html
+                - name: nextcloud-config
+                  mountPath: /var/www/html/config
+                - name: nextcloud-custom-apps
+                  mountPath: /var/www/html/custom_apps
+                - name: nextcloud-data
+                  mountPath: /var/www/html/data
           containers:
             - name: nextcloud-cron
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
-              command: ["su", "-s", "/bin/sh", "www-data", "-c", "php -f /var/www/html/cron.php"]
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  if [ ! -f /var/www/html/version.php ]; then
+                    (cd /usr/src/nextcloud && tar --exclude='./config' --exclude='./custom_apps' --exclude='./data' -cf - .) | (cd /var/www/html && tar xf -)
+                  fi
+                  chown -R www-data:www-data /var/www/html 2>/dev/null || true
+                  su -s /bin/sh www-data -c "php -f /var/www/html/cron.php"
               volumeMounts:
                 - name: nextcloud-html
                   mountPath: /var/www/html
+                - name: nextcloud-config
+                  mountPath: /var/www/html/config
+                - name: nextcloud-custom-apps
+                  mountPath: /var/www/html/custom_apps
+                - name: nextcloud-data
+                  mountPath: /var/www/html/data
               env:
                 - name: MYSQL_HOST
                   value: {{ include "nextcloud.mariadb.host" . }}
@@ -73,6 +92,14 @@ spec:
                       key: redis-password
           volumes:
             - name: nextcloud-html
+              emptyDir: {}
+            - name: nextcloud-config
               persistentVolumeClaim:
-                claimName: {{ .Values.persistence.existingClaim | default (printf "%s-html" (include "nextcloud.fullname" .)) }}
+                claimName: {{ .Values.persistence.existingClaim | default (printf "%s-config" (include "nextcloud.fullname" .)) }}
+            - name: nextcloud-custom-apps
+              persistentVolumeClaim:
+                claimName: {{ printf "%s-custom-apps" (include "nextcloud.fullname" .) }}
+            - name: nextcloud-data
+              persistentVolumeClaim:
+                claimName: {{ printf "%s-data" (include "nextcloud.fullname" .) }}
 
