@@ -60,11 +60,8 @@ spec:
             - -c
             - |
               if [ -f /var/www/html/nextcloud-init-sync.lock ]; then
-                echo "Detected existing nextcloud-init-sync.lock on volume."
-                if [ -f /var/www/html/version.php ]; then
-                  echo "Nextcloud files exist, removing leftover lock..."
-                  rm -f /var/www/html/nextcloud-init-sync.lock
-                fi
+                echo "Removing leftover nextcloud-init-sync.lock on volume..."
+                rm -f /var/www/html/nextcloud-init-sync.lock
               fi
           volumeMounts:
             - name: nextcloud-html
