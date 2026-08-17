@@ -54,8 +54,15 @@ minio:
     requests: { cpu: 300m, memory: 512Mi }
     limits:   { cpu: "1",  memory: 2Gi }
   traefik:
+    enabled: true
     ingressRoute:
-      enabled: false
+      enabled: true
+    tls:
+      enabled: true
+      secretName: minio-console-tls
+  ingress:
+    console:
+      host: "minio.seang.shop"
 
 nextcloud:
   replicaCount: 1
